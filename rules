@@ -1,0 +1,190 @@
+#!/bin/bash
+
+LOCALHOST="127.0.0.1"
+# Variaveis
+WAN_INTERNET="xx.xxx.xxx.xxx"
+REDE_FUNCIONARIO="xxx.xxx.xxx.x/xx"
+REDE_ALUNO="xxx.xxx.x.x/xx"
+GATEAWAY_FUNC="xx.xxx.xxx.xxx"
+GATEAWAY_ALUNO="xxx.xxx.x.x"
+#
+SRV_CATRACA="xx.xxx.xxx.xxx"
+SISCONTROLE="xxx.xx.xx.xxx"
+#
+PC_CARLOS="xx.xxx.xxx.xxx"
+PC_FELIPE="xx.xxx.xxx.xxx"
+PC_CARME="xx.xxx.xxx.xx"
+PC_SHIRLEY="xx.xxx.x.xxx"
+PC_RH="xx.xxx.x.xxx"
+PC_MAGDA="xx.xxx.x.xxx"
+
+
+# 1 - Liberar acesso ao loopback – 127.0.0.1
+iptables -t filter -A INPUT -s 0/0 -d $LOCALHOST -j ACCEPT
+iptables -t filter -A OUTPUT -s 0/0 -d $LOCALHOST -j ACCEPT
+
+# 2 - Liberar Ping do Firewall para Internet e da rede interna
+iptables -t filter -A INPUT -p icmp --icmp-type 0 -s 0/0 -d 0/0 -j ACCEPT
+iptables -t filter -A INPUT -p icmp --icmp-type 8 -s $REDE_FUNCIONARIO -d 0/0 -j ACCEPT
+iptables -t filter -A INPUT -p icmp --icmp-type 8 -s $REDE_ALUNO -d 0/0 -j ACCEPT
+iptables -t filter -A OUTPUT -p icmp -s 0/0 -d 0/0 -j ACCEPT
+
+# 3 - Liberar Consulta DNS a partir do  Firewall
+iptables -t filter -A INPUT -p udp -s 0/0 --sport 53 -d $WAN_INTERNET -j ACCEPT
+iptables -t filter -A OUTPUT -p udp -s $WAN_INTERNET -d 0/0 --dport 53 -j ACCEPT
+
+# 4 - Rede local dns
+iptables -t filter -A INPUT -p udp -s $REDE_FUNCIONARIO -j ACCEPT
+iptables -t filter -A OUTPUT -p udp -d $REDE_FUNCIONARIO -j ACCEPT
+iptables -t filter -A INPUT -p udp -s $REDE_ALUNO -j ACCEPT
+iptables -t filter -A OUTPUT -p udp -d $REDE_ALUNO -j ACCEPT
+
+# 5 - Permitir Acesso a Internet pelo Firewall
+iptables -t filter -A INPUT -p tcp -m multiport -s 0/0 --sport 80,443 -d $WAN_INTERNET -j ACCEPT
+iptables -t filter -A OUTPUT -p tcp -m multiport -s $WAN_INTERNET -d 0/0 --dport 80,443 -j ACCEPT
+
+# 5.1 - Permitir Acesso Interno do firewall
+iptables -t filter -A INPUT -p tcp -m multiport -s $REDE_FUNCIONARIO --sport 20,21,80,443 -d $GATEAWAY_FUNC -j ACCEPT
+iptables -t filter -A OUTPUT -p tcp -m multiport -s $GATEAWAY_FUNC -d $REDE_FUNCIONARIO --dport 20,21,80,443 -j ACCEPT
+#iptables -t filter -A INPUT -p tcp -m multiport -s $REDE_ALUNO --sport 20,21,80,443 -d $GATEAWAY_ALUNO -j ACCEPT
+#iptables -t filter -A OUTPUT -p tcp -m multiport -s $GATEAWAY_ALUNO  -d $REDE_ALUNO --dport 20,21,80,443 -j ACCEPT
+
+# 6 - Liberar Acesso SSH da Máquina Interna para o Firewall
+iptables -t filter -A INPUT -p tcp -s 192.168.1.249 -d $GATEAWAY_ALUNO --dport 22 -j ACCEPT
+iptables -t filter -A OUTPUT -p tcp -s $GATEAWAY_ALUNO --sport 22 -d 192.168.1.249 -j ACCEPT
+
+iptables -t filter -A INPUT -p tcp -s $REDE_FUNCIONARIO -d $GATEAWAY_FUNC --dport 22 -j ACCEPT
+iptables -t filter -A OUTPUT -p tcp -s $GATEAWAY_FUNC --sport 22 -d $REDE_FUNCIONARIO -j ACCEPT
+
+iptables -t filter -A INPUT -p tcp -s $REDE_ALUNO -d $GATEAWAY_ALUNO --dport 22 -j ACCEPT
+iptables -t filter -A OUTPUT -p tcp -s $GATEAWAY_ALUNO --sport 22 -d $REDE_ALUNO -j ACCEPT
+
+#iptables -t filter -A INPUT -p tcp -s $REDE_ALUNO  -d $GATEAWAY_ALUNO --dport 22 -j ACCEPT
+#iptables -t filter -A OUTPUT -p tcp  -s $GATEAWAY_ALUNO --sport 22 -d $REDE_ALUNO -j ACCEPT
+
+# 7 - Liberar "MASCARAMENTO" de Pacotes da Rede Interna para a Internet
+iptables -t nat -A POSTROUTING -s $REDE_FUNCIONARIO -d 0/0 -j MASQUERADE
+iptables -t nat -A POSTROUTING -s $REDE_ALUNO -d 0/0 -j MASQUERADE
+
+# 7.1 - Liberar Acesso a Internet para as Máquinas das SubRedes
+iptables -t filter -A FORWARD -p tcp -m multiport -s $REDE_FUNCIONARIO -d 0/0 --dport 80,443 -j ACCEPT
+iptables -t filter -A FORWARD -p tcp -m multiport -s 0/0 --sport 80,443 -d $REDE_FUNCIONARIO  -j ACCEPT
+iptables -t filter -A FORWARD -p tcp -m multiport -s $REDE_ALUNO -d 0/0 --dport 80,443 -j ACCEPT
+iptables -t filter -A FORWARD -p tcp -m multiport -s 0/0 --sport 80,443 -d $REDE_ALUNO  -j ACCEPT
+
+# 8 - Liberar Acesso a Consulta DNS para as Máquinas das SubRedes
+iptables -t filter -A FORWARD -p udp -s $REDE_FUNCIONARIO -d 0/0 --dport 53 -j ACCEPT
+iptables -t filter -A FORWARD -p udp -s 0/0 --sport 53 -d $REDE_FUNCIONARIO -j ACCEPT
+iptables -t filter -A FORWARD -p udp -s $REDE_ALUNO -d 0/0 --dport 53 -j ACCEPT
+iptables -t filter -A FORWARD -p udp -s 0/0 --sport 53 -d $REDE_ALUNO -j ACCEPT
+
+# 8.1 - Liberar Ping das SubRedes para a Internet
+iptables -t filter -A FORWARD -p icmp -s $REDE_FUNCIONARIO -d 0/0 -j ACCEPT
+iptables -t filter -A FORWARD -p icmp -s 0/0 -d $REDE_FUNCIONARIO -j ACCEPT
+iptables -t filter -A FORWARD -p icmp -s $REDE_ALUNO -d 0/0 -j ACCEPT
+iptables -t filter -A FORWARD -p icmp -s 0/0 -d $REDE_ALUNO -j ACCEPT
+
+# 8.2 - Libera o acesso DNS
+iptables -t filter -A INPUT -p udp -s $REDE_FUNCIONARIO --sport 53 -d $GATEAWAY_FUNC -j ACCEPT
+iptables -t filter -A OUTPUT -p udp -d $REDE_FUNCIONARIO --dport 53 -s $GATEAWAY_FUNC -j ACCEPT
+iptables -t filter -A INPUT -p udp -s $REDE_ALUNO --sport 53 -d $GATEAWAY_ALUNO -j ACCEPT
+iptables -t filter -A OUTPUT -p udp -d $REDE_ALUNO --dport 53 -s $GATEAWAY_ALUNO -j ACCEPT
+
+# 9 - Liberar torrent sala Ti
+iptables -t filter -A FORWARD -p tcp -s $PC_CARLOS -j ACCEPT
+iptables -t filter -A FORWARD -p tcp -d $PC_CARLOS -j ACCEPT
+iptables -t filter -A FORWARD -p tcp -s $PC_FELIPE -j ACCEPT
+iptables -t filter -A FORWARD -p tcp -d $PC_FELIPE -j ACCEPT
+iptables -t filter -A FORWARD -p tcp -d $PC_CARME -j ACCEPT
+iptables -t filter -A FORWARD -p tcp -s $PC_CARME -j ACCEPT
+iptables -t filter -I FORWARD -s $PC_SHIRLEY -d $REDE_FUNCIONARIO -j ACCEPT #SALA PROFESSORES
+iptables -t filter -I FORWARD -s $REDE_FUNCIONARIO -d $PC_SHIRLEY -j ACCEPT #SALA PROFESSORES
+iptables -t filter -I FORWARD -s $PC_RH -d $REDE_FUNCIONARIO -j ACCEPT #RH
+iptables -t filter -I FORWARD -s $REDE_FUNCIONARIO -d $PC_RH -j ACCEPT #RH
+iptables -t filter -I FORWARD -s $PC_MAGDA -d $REDE_FUNCIONARIO -j ACCEPT #TECNICA EM ENGERMAGEM
+iptables -t filter -I FORWARD -s $REDE_FUNCIONARIO -d $PC_MAGDA -j ACCEPT #TECNICA EM ENFERMAGEM
+
+# 9.1 - liberar forward externo
+iptables -A FORWARD -p tcp -m multiport -s $SISCONTROLE --dport 8030,5432,9933 -d $SRV_CATRACA -j ACCEPT
+iptables -A FORWARD -p tcp -m multiport -d $SISCONTROLE --sport 8030,5432,9933 -s $SRV_CATRACA -j ACCEPT
+#iptables -I FORWARD -p tcp -m multiport -s 84.16.242.160 --dport 8030,5432,9933 -d 0/0 -j ACCEPT
+#iptables -I FORWARD -p tcp -m multiport -d 84.16.242.160 --sport 8030,5432,9933 -s 0/0 -j ACCEPT
+
+# Liberar transferencia de pacotes pelo firewall
+#iptables -t filter -I FORWARD -p tcp -s $REDE_ALUNO -d $REDE_FUNCIONARIO -j ACCEPT
+#iptables -t filter -I FORWARD -p tcp -s $REDE_FUNCIONARIO -d $REDE_ALUNO -j ACCEPT
+#iptables -t filter -I FORWARD -p udp -s $PC_MAGDA -d $REDE_FUNCIONARIO -j ACCEPT #enfermagem
+#iptables -t filter -I FORWARD -p udp -s $REDE_FUNCIONARIO -d $PC_MAGDA -j ACCEPT #enfermagem
+
+
+# 10 - Libere Repasse de Pacotes para os Serviços mais comuns para as Máquinas das SubRedes:
+for PORTS in 21 20 25 110 143 145 2224 587 993 995 465 109 3456 8552
+do
+   iptables -A FORWARD -p tcp -s $REDE_FUNCIONARIO  --sport 1024:65535  -d 0/0 --dport $PORTS -j ACCEPT
+   iptables -A FORWARD -p tcp  -s 0/0 --sport $PORTS -d $REDE_FUNCIONARIO --dport 1024:65535 -j ACCEPT
+   iptables -A FORWARD -p tcp -s $REDE_ALUNO  --sport 1024:65535  -d 0/0 --dport $PORTS -j ACCEPT
+   iptables -A FORWARD -p tcp  -s 0/0 --sport $PORTS -d $REDE_ALUNO --dport 1024:65535 -j ACCEPT
+done
+
+# 11 - Liberar Squid no Firewall
+
+iptables -t filter -A INPUT -p tcp -s $REDE_FUNCIONARIO -d $GATEAWAY_FUNC --dport 8080 -j ACCEPT
+iptables -t filter -A OUTPUT -p tcp -s $GATEAWAY_FUNC --sport 8080 -d $REDE_FUNCIONARIO -j ACCEPT
+iptables -t filter -A INPUT -p tcp -s $REDE_ALUNO -d $GATEAWAY_ALUNO --dport 8080 -j ACCEPT
+iptables -t filter -A OUTPUT -p tcp -s $GATEAWAY_ALUNO --sport 8080 -d $REDE_ALUNO -j ACCEPT
+
+# 12 - Libera port servidor postgresql
+iptables -t nat -A PREROUTING -p tcp -s $SISCONTROLE --dport 8030 -j DNAT --to $SRV_CATRACA
+iptables -t nat -A PREROUTING -p tcp -s $SISCONTROLE --dport 5432 -j DNAT --to $SRV_CATRACA
+iptables -t nat -A PREROUTING -p tcp -s $SISCONTROLE --dport 9933 -j DNAT --to $SRV_CATRACA
+
+#iptables -t nat -A PREROUTING -p tcp -s 84.16.242.160 --dport 8030 -j DNAT --to $SRV_CATRACA
+#iptables -t nat -A PREROUTING -p tcp -s 84.16.242.160 --dport 5432 -j DNAT --to $SRV_CATRACA
+#iptables -t nat -A PREROUTING -p tcp -s 84.16.242.160 --dport 9933 -j DNAT --to $SRV_CATRACA
+
+# 13 - liberar port zap
+iptables -A FORWARD -p udp --dport 3478 -j ACCEPT # WhatsApp
+iptables -A FORWARD -p tcp --dport 5222 -j ACCEPT # WhatsApp
+iptables -A FORWARD -p tcp --dport 5223 -j ACCEPT # WhatsApp
+iptables -A FORWARD -p tcp --dport 5228 -j ACCEPT # WhatsApp
+iptables -A FORWARD -p tcp --dport 5242 -j ACCEPT # WhatsApp
+iptables -A FORWARD -p tcp --dport 4244 -j ACCEPT # WhatsApp
+iptables -A FORWARD -p tcp --dport 59234 -j ACCEPT # WhatsApp
+iptables -A FORWARD -p udp --dport 59234 -j ACCEPT # WhatsApp
+iptables -A FORWARD -p tcp --dport 50318 -j ACCEPT # WhatsApp
+iptables -A FORWARD -p udp --dport 50318 -j ACCEPT # WhatsApp
+iptables -A FORWARD -p udp --dport 45395 -j ACCEPT # WhatsApp
+
+
+iptables -A FORWARD -p tcp --dport 2800 -j ACCEPT
+iptables -A FORWARD -p tcp --sport 2800 -j ACCEPT
+iptables -A FORWARD -p tcp --dport 27000 -j ACCEPT
+iptables -A FORWARD -p tcp --sport 27000 -j ACCEPT
+iptables -A FORWARD -p tcp --dport 27009 -j ACCEPT
+iptables -A FORWARD -p tcp --sport 27009 -j ACCEPT
+
+### Esses IPs não passaram pelo proxy
+# ROUTEADORES wifi
+#iptables -t nat -I PREROUTING -p tcp -m multiport --dport 80,443 -s 10.201.148.21 -j RETURN #Informatica
+#iptables -t nat -I PREROUTING -p tcp -m multiport --dport 80,443 -s 10.201.148.22 -j RETURN #DIRECAO
+#iptables -t nat -I PREROUTING -p tcp -m multiport --dport 80,443 -s 10.201.148.23 -j RETURN #Coord. Geral
+#iptables -t nat -I PREROUTING -p tcp -m multiport --dport 80,443 -s 10.201.148.24 -j RETURN #Sala Prof.
+#iptables -t nat -I PREROUTING -p tcp -m multiport --dport 80,443 -s 10.201.148.25 -j RETURN #RH
+#iptables -t nat -I PREROUTING -p tcp -m multiport --dport 80,443 -s 10.201.148.26 -j RETURN #Sala 400
+#iptables -t nat -I PREROUTING -p tcp -m multiport --dport 80,443 -s 10.201.148.27 -j RETURN #Wilson
+#iptables -t nat -I PREROUTING -p tcp -m multiport --dport 80,443 -s 192.168.0.252 -j RETURN #biblioteca
+#iptables -t nat -I PREROUTING -p tcp -m multiport --dport 80,443 -s 10.201.148.100 -j RETURN #BIBLIOTECA ADM
+# IP's local
+#iptables -t nat -I PREROUTING -p tcp -m multiport --dport 80,443 -s 10.201.148.199 -j RETURN #Carlos
+#iptables -t nat -I PREROUTING -p tcp -m multiport --dport 80,443 -s 10.201.148.150 -j RETURN #Felipe
+
+
+#Redirecionar todo o trafego da porta 80,443 para 3128
+#iptables -t nat -A PREROUTING -s $REDE_FUNCIONARIO -p tcp --dport 80 -j REDIRECT --to-port 8080
+#iptables -t nat -A PREROUTING -s $REDE_FUNCIONARIO -p tcp --dport 443 -j REDIRECT --to-port 8080
+
+#iptables -t nat -A PREROUTING -s $REDE_ALUNO -p tcp --dport 80 -j REDIRECT --to-port 8080
+#iptables -t nat -A PREROUTING -s $REDE_ALUNO -p tcp --dport 443 -j REDIRECT --to-port 8080
+
+0
+

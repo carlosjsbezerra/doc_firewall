@@ -1,0 +1,11 @@
+#!/bin/bash
+
+# Variaveis
+FWWAN1="200.178.251.146"
+MQINTERNA="10.201.148.199"
+
+# acesso ssh externo
+#iptables -t filter -A INPUT -s 0/0 -p tcp -d $FWWAN1 --dport 22 -j ACCEPT
+#iptables -t filter -A OUTPUT -s $FWWAN1 -p tcp -d 0/0 --sport 22 -j ACCEPT
+
+iptables -t nat -A PREROUTING -p tcp -s 0/0 --dport 3389 -j DNAT --to $MQINTERNA
