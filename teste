@@ -1,0 +1,23 @@
+#!/bin/bash
+
+LAN_FUNCIONARIOS='enp0s3'
+LAN_ALUNOS='enp0s8'
+
+WAN_IMBRATEL='enp0s10'
+WAN_VIVO='enp0s9'
+
+GW_IMBRATEL='10.0.5.2'
+GW_VIVO='192.168.15.1'
+
+iptables -t nat -A POSTROUTING -o $WAN_IMBRATEL -j MASQUERADE
+#iptables -t nat -A POSTROUTING -o $WAN_VIVO -j MASQUERADE
+
+# TODOS OS PACORES QUE VIEREM DA LAN SERÁ ENVIADO PARA SUAS RESPECTIVAS TABELAS
+ip rule add from $LAN_FUNCIONARIOS table 20
+#ip rule add from $LAN_ALUNOS table 21
+
+# OS PACOTES ENVIADO PARA SUAS TABELAS TEM COMO GATEWAY DEFAULT 
+ip route add default via $GW_IMBRATEL dev $WAN_IMBRATEL table 20
+#ip route add default via $GW_VIVO dev $WAN_VIVO table 21
+
+ip route flush cache
