@@ -1,51 +1,80 @@
 #!/bin/bash
 
-# PLACAS DE REDE WAN
+### BEGIN INIT INFO
+# Provides: firewall
+# Required-Start: $local_fs $remote_fs $network $syslog
+# Required-Stop: $local_fs $remote_fs $network $syslog
+# Default-Start: 2 3 4 5
+# Default-Stop: 0 1 6
+# Short-Description: Start firewall.sh at boot time
+# Description: Enable service provided by firewall.
+### END INIT INFO
+
+### CORES
+VERDE="\033[1;32m"
+AMARELO="\033[1;33m"
+AZUL="\033[1;34m"
+VERMELHO="\033[1;31m"
+END="\033[m"
+
+# PLACAS DE REDES
 LINK1=enp0s3
 LINK2=enp0s8
-
-# DEFINICAO DOS GATEWAYS (IPs FICTICIOS)
 GW_LINK1=10.0.2.2
 GW_LINK2=192.168.15.1
- 
-# PLACAS DE REDE LAN
 LAN1=enp0s9
 LAN2=enp0s10
 
+ProgressBar() {
+  tput civis
+  for X in $(seq 20)
+  do  
+    for i in ..
+    do  
+      echo -en "\033[1D$i"
+      sleep .1
+    done
+  done
+  tput cnorm
+}
 
- 
-function start() {
-  # Limpa o cache de rotas
-  # Pacotes com marcacao 1 vao para o link1
-  # Pacotes com marcacao 2 vao para o link2
-  # Associa a rota do link1 a interface de rede e tabela correspondentes
-  # Associa a rota do link1 a interface de rede e tabela correspondentes
-  # Adiciona a rota padrao ao link1
-  ip route flush cache
-  ip rule add fwmark 1 prio 20 table link1
-  ip rule add fwmark 2 prio 20 table link2
-  ip route add default via $GW_LINK1 dev $LINK1 table link1
-  ip route add default via $GW_LINK2 dev $LINK2 table link2
-  
-  #ip route add default via $GW_LINK1
-  echo "Tabela de roteamento criada."
-}
- 
-function stop() {
-  # Limpa o cache
-  # Deleta as regras de acordo com as marcacoes
-  # Deleta a rota padrao
-  ip route flush cache
-  ip rule del fwmark 2
-  ip rule del fwmark 3
-  
-  #ip route del default
-  echo "Limpeza da tabela de roteamento concluida."
-}
- 
+
 case $1 in
-  'start') start; exit ;;
-  'stop') stop; exit ;;
-  'restart') stop; start; exit ;;
-  *) start; exit ;;
+
+stop)
+	
+	ip route flush cache # Limpa o cache
+	ip rule del fwmark 2 # Deleta as regras de acordo com as marcacoes
+	ip rule del fwmark 3 # Deleta a rota padrao  
+	#ip route del default
+	
+	echo "Limpeza da tabela de roteamento concluida."
+	echo -en "Stopping Security Firewall ";ProgressBar; echo -e " [\033[0;32m ok\033[m ]"
+
+;;
+
+start)
+	$0 stop
+	sleep 0.5
+	echo -en "Starting Tabela de roteamento ";ProgressBar; echo -e " [\033[0;32m ok\033[m ]"
+	
+	# Adiciona a rota padrao ao link1
+	ip route flush cache # Limpa o cache de rotas
+	ip rule add fwmark 1 prio 20 table link1 # Pacotes com marcacao 1 vao para o link1
+	ip rule add fwmark 2 prio 20 table link2 # Pacotes com marcacao 2 vao para o link2
+	ip route add default via $GW_LINK1 dev $LINK1 table link1 # Associa a rota do link1 a interface de rede e tabela correspondentes
+	ip route add default via $GW_LINK2 dev $LINK2 table link2 # Associa a rota do link1 a interface de rede e tabela correspondentes
+	#ip route add default via $GW_LINK1
+  
+	echo "Tabela de roteamento criada." 
+;;
+
+restart)
+	$0 start
+;;
+
+*)
+	echo 'POR FAVOR USE "stop|start|restart"'
+;;
+
 esac
