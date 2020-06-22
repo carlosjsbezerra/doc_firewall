@@ -1,12 +1,12 @@
 #!/bin/bash
 
 # PLACAS DE REDE WAN
-ETH_LINK1=eth1
-ETH_LINK2=eth2
+LINK1=eth1
+LINK2=eth2
 
 # DEFINICAO DOS GATEWAYS (IPs FICTICIOS)
-LINK1=10.0.2.2
-LINK2=192.168.15.1
+GW_LINK1=10.0.2.2
+GW_LINK2=192.168.15.1
  
 # PLACAS DE REDE LAN
 LAN1=enp0s9
@@ -16,28 +16,30 @@ LAN2=enp0s10
  
 function start() {
   # Limpa o cache de rotas
-  ip route flush cache
   # Pacotes com marcacao 1 vao para o link1
-  ip rule add fwmark 1 prio 20 table link1
   # Pacotes com marcacao 2 vao para o link2
-  ip rule add fwmark 2 prio 20 table link2
   # Associa a rota do link1 a interface de rede e tabela correspondentes
-  ip route add default via $GW_LINK1 dev $LINK1 table link1
   # Associa a rota do link1 a interface de rede e tabela correspondentes
-  ip route add default via $GW_LINK2 dev $LINK2 table link2
   # Adiciona a rota padrao ao link1
-  route add default gw $GW_LINK1
+  ip route flush cache
+  ip rule add fwmark 1 prio 20 table link1
+  ip rule add fwmark 2 prio 20 table link2
+  ip route add default via $GW_LINK1 dev $LINK1 table link1
+  ip route add default via $GW_LINK2 dev $LINK2 table link2
+  
+  #ip route add default via $GW_LINK1
   echo "Tabela de roteamento criada."
 }
  
 function stop() {
   # Limpa o cache
-  ip route flush cache
   # Deleta as regras de acordo com as marcacoes
+  # Deleta a rota padrao
+  ip route flush cache
   ip rule del fwmark 2
   ip rule del fwmark 3
-  # Deleta a rota padrao
-  route del default
+  
+  #ip route del default
   echo "Limpeza da tabela de roteamento concluida."
 }
  
