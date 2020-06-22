@@ -60,11 +60,15 @@ start)
 	
 	# Adiciona a rota padrao ao link1
 	ip route flush cache # Limpa o cache de rotas
-	ip rule add fwmark 1 prio 20 table link1 # Pacotes com marcacao 1 vao para o link1
-	ip rule add fwmark 2 prio 20 table link2 # Pacotes com marcacao 2 vao para o link2
-	ip route add default via $GW_LINK1 dev $LINK1 table link1 # Associa a rota do link1 a interface de rede e tabela correspondentes
-	ip route add default via $GW_LINK2 dev $LINK2 table link2 # Associa a rota do link1 a interface de rede e tabela correspondentes
+	ip rule add fwmark 1 prio 20 table IMBRATEL # Pacotes com marcacao 1 vao para o link1
+	ip rule add fwmark 2 prio 20 table VIVO # Pacotes com marcacao 2 vao para o link2
+	ip route add default via $GW_LINK1 dev $LINK1 table IMBRATEL # Associa a rota do link1 a interface de rede e tabela correspondentes
+	ip route add default via $GW_LINK2 dev $LINK2 table VIVO # Associa a rota do link1 a interface de rede e tabela correspondentes
 	#ip route add default via $GW_LINK1
+	
+	echo 1 > /proc/sys/net/ipv4/ip_forward
+	iptables -t mangle -A PREROUTING -s 10.201.148.0/22 -i $LAN1 -j MARK --set-mark 1
+	iptables -t mangle -A PREROUTING -s 192.168.0.0/22 -i $LAN2 -j MARK --set-mark 2
   
 	echo "Tabela de roteamento criada." 
 ;;
