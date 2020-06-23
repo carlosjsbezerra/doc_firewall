@@ -2,7 +2,8 @@
 
 LOCALHOST="127.0.0.1"
 # Variaveis
-WAN_INTERNET="xx.xxx.xxx.xxx"
+WAN_EMBRATEL="xx.xxx.xxx.xxx"
+WAN_VIVO="xx.xxx.xxx.xxx"
 REDE_FUNCIONARIO="xxx.xxx.xxx.x/xx"
 REDE_ALUNO="xxx.xxx.x.x/xx"
 GATEAWAY_FUNC="xx.xxx.xxx.xxx"
@@ -29,9 +30,13 @@ iptables -t filter -A INPUT -p icmp --icmp-type 8 -s $REDE_FUNCIONARIO -d 0/0 -j
 iptables -t filter -A INPUT -p icmp --icmp-type 8 -s $REDE_ALUNO -d 0/0 -j ACCEPT
 iptables -t filter -A OUTPUT -p icmp -s 0/0 -d 0/0 -j ACCEPT
 
-# 3 - Liberar Consulta DNS a partir do  Firewall
-iptables -t filter -A INPUT -p udp -s 0/0 --sport 53 -d $WAN_INTERNET -j ACCEPT
-iptables -t filter -A OUTPUT -p udp -s $WAN_INTERNET -d 0/0 --dport 53 -j ACCEPT
+# 3.1 - Liberar Consulta DNS-WAN_EMBRATEL a partir do  Firewall
+iptables -t filter -A INPUT -p udp -s 0/0 --sport 53 -d $WAN_EMBRATEL -j ACCEPT
+iptables -t filter -A OUTPUT -p udp -s $WAN_EMBRATEL -d 0/0 --dport 53 -j ACCEPT
+
+# 3.2 - Liberar Consulta DNS-WAN_VIVO a partir do  Firewall
+iptables -t filter -A INPUT -p udp -s 0/0 --sport 53 -d $WAN_VIVO -j ACCEPT
+iptables -t filter -A OUTPUT -p udp -s $WAN_VIVO -d 0/0 --dport 53 -j ACCEPT
 
 # 4 - Rede local dns
 iptables -t filter -A INPUT -p udp -s $REDE_FUNCIONARIO -j ACCEPT
@@ -39,17 +44,21 @@ iptables -t filter -A OUTPUT -p udp -d $REDE_FUNCIONARIO -j ACCEPT
 iptables -t filter -A INPUT -p udp -s $REDE_ALUNO -j ACCEPT
 iptables -t filter -A OUTPUT -p udp -d $REDE_ALUNO -j ACCEPT
 
-# 5 - Permitir Acesso a Internet pelo Firewall
-iptables -t filter -A INPUT -p tcp -m multiport -s 0/0 --sport 80,443 -d $WAN_INTERNET -j ACCEPT
-iptables -t filter -A OUTPUT -p tcp -m multiport -s $WAN_INTERNET -d 0/0 --dport 80,443 -j ACCEPT
+# 5.0 - Permitir Acesso a Internet WAN_EMBRATEL pelo Firewall
+iptables -t filter -A INPUT -p tcp -m multiport -s 0/0 --sport 80,443 -d $WAN_EMBRATEL -j ACCEPT
+iptables -t filter -A OUTPUT -p tcp -m multiport -s $WAN_EMBRATEL -d 0/0 --dport 80,443 -j ACCEPT
 
-# 5.1 - Permitir Acesso Interno do firewall
+# 5.1 - Permitir Acesso a Internet DNS-WAN_VIVO pelo Firewall
+iptables -t filter -A INPUT -p tcp -m multiport -s 0/0 --sport 80,443 -d $WAN_VIVO -j ACCEPT
+iptables -t filter -A OUTPUT -p tcp -m multiport -s $WAN_VIVO -d 0/0 --dport 80,443 -j ACCEPT
+
+# 6.0 - Permitir Acesso Interno do firewall
 iptables -t filter -A INPUT -p tcp -m multiport -s $REDE_FUNCIONARIO --sport 20,21,80,443 -d $GATEAWAY_FUNC -j ACCEPT
 iptables -t filter -A OUTPUT -p tcp -m multiport -s $GATEAWAY_FUNC -d $REDE_FUNCIONARIO --dport 20,21,80,443 -j ACCEPT
 #iptables -t filter -A INPUT -p tcp -m multiport -s $REDE_ALUNO --sport 20,21,80,443 -d $GATEAWAY_ALUNO -j ACCEPT
 #iptables -t filter -A OUTPUT -p tcp -m multiport -s $GATEAWAY_ALUNO  -d $REDE_ALUNO --dport 20,21,80,443 -j ACCEPT
 
-# 6 - Liberar Acesso SSH da Máquina Interna para o Firewall
+# 6.1 - Liberar Acesso SSH da Máquina Interna para o Firewall
 iptables -t filter -A INPUT -p tcp -s 192.168.1.249 -d $GATEAWAY_ALUNO --dport 22 -j ACCEPT
 iptables -t filter -A OUTPUT -p tcp -s $GATEAWAY_ALUNO --sport 22 -d 192.168.1.249 -j ACCEPT
 
@@ -63,8 +72,9 @@ iptables -t filter -A OUTPUT -p tcp -s $GATEAWAY_ALUNO --sport 22 -d $REDE_ALUNO
 #iptables -t filter -A OUTPUT -p tcp  -s $GATEAWAY_ALUNO --sport 22 -d $REDE_ALUNO -j ACCEPT
 
 # 7 - Liberar "MASCARAMENTO" de Pacotes da Rede Interna para a Internet
-iptables -t nat -A POSTROUTING -s $REDE_FUNCIONARIO -d 0/0 -j MASQUERADE
-iptables -t nat -A POSTROUTING -s $REDE_ALUNO -d 0/0 -j MASQUERADE
+# Obs.: comando se encontra arquivo /etc/init.d/firewall 
+#iptables -t nat -A POSTROUTING -s $REDE_FUNCIONARIO -d 0/0 -j MASQUERADE
+#iptables -t nat -A POSTROUTING -s $REDE_ALUNO -d 0/0 -j MASQUERADE
 
 # 7.1 - Liberar Acesso a Internet para as Máquinas das SubRedes
 iptables -t filter -A FORWARD -p tcp -m multiport -s $REDE_FUNCIONARIO -d 0/0 --dport 80,443 -j ACCEPT

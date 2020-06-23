@@ -10,6 +10,8 @@
 # Description: Enable service provided by firewall.
 ### END INIT INFO
 
+REDE_FUNCIONARIO="xxx.xxx.xxx.x/xx"
+REDE_ALUNO="xxx.xxx.x.x/xx"
 
 # Script de Firewall
 ### CORES
@@ -50,7 +52,7 @@ stop)
 	iptables -t security -F
 
 	# Bloquear a passagem de pacotes pelo kernel
-	echo 0 > /proc/sys/net/ipv4/ip_forward
+	# echo 0 > /proc/sys/net/ipv4/ip_forward
 	echo -en "Stopping Security Firewall ";ProgressBar; echo -e " [\033[0;32m ok\033[m ]"
 
 ;;
@@ -60,8 +62,13 @@ start)
 	$0 stop
 	sleep 0.5
 	echo -en "Starting Security Firewall ";ProgressBar; echo -e " [\033[0;32m ok\033[m ]"
+	
 	# liberar a passagem de pacotes pelo kernel
 	echo 1 > /proc/sys/net/ipv4/ip_forward
+	
+	# Liberar "MASCARAMENTO" de Pacotes da Rede Interna para a Internet
+	iptables -t nat -A POSTROUTING -s $REDE_FUNCIONARIO -d 0/0 -j MASQUERADE
+	iptables -t nat -A POSTROUTING -s $REDE_ALUNO -d 0/0 -j MASQUERADE
 
 	# Politicas que bloqueiam qualquer tipo de Conexão
 	iptables -P OUTPUT DROP
@@ -70,6 +77,7 @@ start)
 
 	# Iniciando as Regras
 	bash /etc/rules
+	bash /etc/rotas
 	bash /etc/test-09052018
 ;;
 

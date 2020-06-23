@@ -1,0 +1,30 @@
+#!/bin/bash
+
+# PLACAS DE REDES
+ETH_EMBRATEL=enp0s3
+ETH_VIVO=enp0s8
+GW_EMBRATEL=10.0.2.2
+GW_VIVO=192.168.15.1
+LAN_FUNCIONARIOS=10.201.148.0/22
+LAN_ALUNOS=192.168.0.0/22
+
+# vim /etc/iproute2/rt_tables
+# ADD -> 
+#250 IMBRATEL
+#251 VIVO
+
+# Adiciona a rota padrao ao link1
+ip route flush cache # Limpa o cache de rotas
+ip rule add fwmark 1 prio 20 table IMBRATEL # Pacotes com marcacao 1 vao para o IMBRATEL
+ip rule add fwmark 2 prio 20 table VIVO # Pacotes com marcacao 2 vao para o VIVO
+ip route add default via $GW_EMBRATEL dev $ETH_EMBRATEL table IMBRATEL # Associa a rota da IMBRATEL a interface de rede e tabela correspondentes
+ip route add default via $GW_VIVO dev $ETH_VIVO table VIVO # Associa a rota da VIVO a interface de rede e tabela correspondentes
+#ip route add default via $GW_LINK1
+
+iptables -t mangle -I PREROUTING -s $LAN_FUNCIONARIOS -j MARK --set-mark 1
+iptables -t mangle -I PREROUTING -s $LAN_ALUNOS -j MARK --set-mark 2
+
+#ip route flush cache # Limpa o cache
+#ip rule del fwmark 1 # Deleta as regras de acordo com as marcacoes
+#ip rule del fwmark 2 # Deleta a rota padrao  
+#ip route del default
