@@ -9,19 +9,29 @@ iface lo inet loopback
 
 auto enp1s0
 iface enp1s0 inet static
-	address 200.178.251.146
-	netmask 255.255.255.240
-	gateway 200.178.251.145
-	broadcast 200.178.251.159
-	dns-nameserver 8.8.8.8
+        address XXX.XXX.XXX.XXX
+        netmask XXX.XXX.XXX.XXX
+        gateway XXX.XXX.XXX.XXX
+        broadcast XXX.XXX.XXX.XXX
+        dns-nameserver X.X.X.X
 
-auto ens32
-iface ens32 inet static
-	address 192.168.0.1
-	netmask 255.255.252.0
-	
-
+# LAN-FUNCIONARIOS
 auto ens33
 iface ens33 inet static
-	address 10.201.148.254
-	netmask 255.255.252.0
+        address XXX.XXX.XXX.XXX
+        netmask XXX.XXX.XXX.XXX
+
+# WAM-ALUNOS
+auto ens34
+iface ens34 inet static
+        address XXX.XXX.XXX.XXX
+        netmask XXX.XXX.XXX.XXX
+        gateway XXX.XXX.XXX.XXX
+        broadcast XXX.XXX.XXX.XXX
+        dns-nameserver XXX.XXX.XXX.XXX
+
+# LAN-ALUNOS
+auto ens32
+iface ens32 inet static
+        address XXX.XXX.XXX.XXX
+        netmask XXX.XXX.XXX.XXX
