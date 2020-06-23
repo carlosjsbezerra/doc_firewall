@@ -40,16 +40,16 @@ case $1 in
 stop)
 
 	# Definindo Politica ACCEPT - ACEITA TUDO
-	iptables -t filter -P OUTPUT ACCEPT
-	iptables -t filter -P INPUT ACCEPT
-	iptables -t filter -P FORWARD ACCEPT
+	sudo iptables -t filter -P OUTPUT ACCEPT
+	sudo iptables -t filter -P INPUT ACCEPT
+	sudo iptables -t filter -P FORWARD ACCEPT
 
 	# Limpar as Regras de todas as tableas
-	iptables -t filter -F
-	iptables -t nat -F
-	iptables -t mangle -F
-	iptables -t raw -F
-	iptables -t security -F
+	sudo iptables -t filter -F
+	sudo iptables -t nat -F
+	sudo iptables -t mangle -F
+	sudo iptables -t raw -F
+	sudo iptables -t security -F
 
 	# Bloquear a passagem de pacotes pelo kernel
 	# echo 0 > /proc/sys/net/ipv4/ip_forward
@@ -67,13 +67,13 @@ start)
 	echo 1 > /proc/sys/net/ipv4/ip_forward
 	
 	# Liberar "MASCARAMENTO" de Pacotes da Rede Interna para a Internet
-	iptables -t nat -A POSTROUTING -s $REDE_FUNCIONARIO -d 0/0 -j MASQUERADE
-	iptables -t nat -A POSTROUTING -s $REDE_ALUNO -d 0/0 -j MASQUERADE
+	sudo iptables -t nat -A POSTROUTING -s $REDE_FUNCIONARIO -d 0/0 -j MASQUERADE
+	sudo iptables -t nat -A POSTROUTING -s $REDE_ALUNO -d 0/0 -j MASQUERADE
 
 	# Politicas que bloqueiam qualquer tipo de Conexão
-	iptables -P OUTPUT DROP
-	iptables -P INPUT DROP
-	iptables -P FORWARD DROP
+	sudo iptables -P OUTPUT DROP
+	sudo iptables -P INPUT DROP
+	sudo iptables -P FORWARD DROP
 
 	# Iniciando as Regras
 	bash /etc/rules
