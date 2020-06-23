@@ -2,12 +2,12 @@
 
 # Variaveis
 FWWAN1="200.178.251.146"
-MQCARME="10.201.148.68"
-MQCARLOS="10.201.148.199"
+MQLACAL1="10.201.148.68"
+MQLOCAL2="10.201.148.199"
 
 # acesso ssh externo
 #iptables -t filter -A INPUT -s 0/0 -p tcp -d $FWWAN1 --dport 22 -j ACCEPT
 #iptables -t filter -A OUTPUT -s $FWWAN1 -p tcp -d 0/0 --sport 22 -j ACCEPT
 
-iptables -t nat -A PREROUTING -p tcp -s 0/0 --dport 3389 -j DNAT --to $MQCARME
-iptables -t nat -A PREROUTING -p tcp -s 0/0 --dport 3390 -j DNAT --to $MQCARLOS
+iptables -t nat -A PREROUTING -p tcp -s 0/0 --dport 3389 -j DNAT --to $MQLOCAL1
+iptables -t nat -A PREROUTING -p tcp -s 0/0 --dport 3390 -j DNAT --to $MQLOCAL2
